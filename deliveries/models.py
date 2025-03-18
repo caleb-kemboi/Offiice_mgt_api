@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import CASCADE
-from utils.models import BaseModel
-from employee_travels.models import Employee
+from utils.models import BaseModel, User
+
 
 
 class Deliveries(BaseModel):
@@ -9,7 +9,7 @@ class Deliveries(BaseModel):
     item_name = models.CharField(max_length = 200)
     sender_name = models.CharField(max_length=200)
     delivery_description = models.CharField(max_length=200)
-    employee = models.ForeignKey(Employee, on_delete=CASCADE)
+    employee = models.ForeignKey(User, on_delete=CASCADE)
     delivery_date = models.DateField()
     delivery_time = models.TimeField()
     pickup_date = models.DateTimeField(blank=True, null=True)

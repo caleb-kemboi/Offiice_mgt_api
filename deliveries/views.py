@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from office_mgt import settings
 from django.shortcuts import render, get_object_or_404, redirect
 from services.requests import get_clean_data
-from services.services import DeliveryService, EmployeeService
+from services.services import DeliveryService, UserService
 from .models import Deliveries
 from .utils import send_delivery_mail
 
@@ -30,7 +30,7 @@ def create_delivery(request):
         if not all([item_name, sender_name, employee_email, delivery_description, delivery_date, delivery_time]):
             return JsonResponse({'error': 'Missing required fields'}, status=400)
 
-        employee = EmployeeService().filter(employee_email=employee_email).first()
+        employee = UserService().filter(email=employee_email).first()
         # Create a new delivery record
 
         delivery = DeliveryService().create(

@@ -1,5 +1,5 @@
-from employee_travels.models import Employee
-from services.services import EmployeeService, VisitsService
+
+from services.services import UserService, VisitsService
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
@@ -28,7 +28,7 @@ def create_visit(request):
 
         # Check if the visitor already exists, otherwise create a new one
 
-        employee = EmployeeService().filter(employee_email=employee_email).first()
+        employee = UserService().filter(email=employee_email).first()
 
         employee_busy = VisitsService().filter(
             employee=employee,

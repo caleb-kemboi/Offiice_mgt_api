@@ -2,6 +2,8 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required, user_passes_test
+
+from services.services import UserService
 from utils.models import User
 
 def is_admin(user):
@@ -50,6 +52,47 @@ def create_user(request):
 
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON data."}, status=400)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+def list_employees(request):
+    if request.method != "GET":
+        return JsonResponse({"error": "Invalid request method"}, status=405)
+
+    try:
+        # Fetch all employees
+        employees = User.objects.all().values(
+            "id",
+            "first_name",
+            "last_name",
+            "email",
+            "phone_number",
+            "role",
+            "supervisor__email"
+        )
+
+        # Count total employees
+        total_employees = User.objects.count()
+
+        # Count by roles
+        total_admins = UserService().filter(role="admin").count()
+        total_receptionists = UserService().filter(role="receptionist").count()
+        total_supervisors = UserService().filter(
+            role="employee", supervised_employees__isnull=False
+        ).distinct().count()
+        total_regular_employees = UserService().filter(role="employee").count()
+
+        # Format the response
+        return JsonResponse({
+            "total_employees": total_employees,
+            "total_admins": total_admins,
+            "total_receptionists": total_receptionists,
+            "total_supervisors": total_supervisors,
+            "total_regular_employees": total_regular_employees,
+            "employees": list(employees)
+        }, status=200)
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

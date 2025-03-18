@@ -5,9 +5,8 @@ from employee_travels.utils import get_supervisor_email, send_travel_request_mai
     send_travel_expenses_mail
 from services.requests import get_clean_data
 from django.http import JsonResponse
-from services.services import SessionService, EmployeeTravelService, EmployeeService
+from services.services import SessionService, EmployeeTravelService, UserService
 import json
-
 
 
 @csrf_exempt
@@ -29,8 +28,6 @@ def apply_for_travel(request):
         travel_budget = data.get("travel_budget")
         travel_approval_status = 'Pending Supervisor Approval'
 
-
-
         required_fields = [
             "travel_title", "travel_purpose", "employee_email", "travel_date_from", "travel_date_to",
             "travel_destination", "mode_of_transport", "travel_budget"
@@ -40,11 +37,23 @@ def apply_for_travel(request):
         missing_fields = [field for field in required_fields if not data.get(field)]
         if missing_fields:
             return JsonResponse({"error": f"Missing required fields: {', '.join(missing_fields)}"}, status=400)
-        employee = EmployeeService().filter(employee_email=employee_email).first()
 
-        # Create travel request (Ensure EmployeeTravelService().create() is properly implemented)
-        employee1 = EmployeeService().get(employee_email=employee_email)  # Replace with actual email
-        supervisor_email = get_supervisor_email(employee1)
+        # Get the employee object
+        employee = UserService().get(email=employee_email)
+        if not employee:
+            return JsonResponse({"error": "Employee not found"}, status=404)
+
+        # Ensure the requester is not an admin (Admins don’t have supervisors)
+        if employee.is_admin():
+            return JsonResponse({"error": "Admins cannot apply for travel"}, status=403)
+
+        # Get the supervisor email
+        if employee.supervisor:
+            supervisor_email = employee.supervisor.email
+        else:
+            return JsonResponse({"error": "Supervisor not assigned"}, status=400)
+
+        # Create the travel request
         travel_request = EmployeeTravelService().create(
             travel_title=travel_title,
             travel_purpose=travel_purpose,
@@ -54,16 +63,20 @@ def apply_for_travel(request):
             travel_destination=travel_destination,
             mode_of_transport=mode_of_transport,
             travel_budget=travel_budget,
-            travel_approval_status = travel_approval_status,
-            travel_applied_on = travel_applied_on
+            travel_approval_status=travel_approval_status,
+            travel_applied_on=travel_applied_on
         )
+
+        # Send email to the supervisor
         send_travel_request_mail(supervisor_email, travel_title, employee, travel_applied_on, travel_purpose)
+
         return JsonResponse({"message": "Travel request submitted", "id": travel_request.id}, status=201)
 
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON format"}, status=400)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
 
 @csrf_exempt
 def approve_travel(request, travel_id):

@@ -1,4 +1,4 @@
-from employee_travels.models import Travels, Employee
+from employee_travels.models import Travels
 from services.serviceBase import ServiceBase
 from utils.models import User, Roles, Session, ForgotPassword
 from deliveries.models import Deliveries
@@ -17,8 +17,6 @@ class DeliveryService(ServiceBase):
 class EmployeeTravelService(ServiceBase):
     manager = Travels.objects
 
-class EmployeeService(ServiceBase):
-       manager = Employee.objects
 
 class VisitsService(ServiceBase):
       manager = Visits.objects
