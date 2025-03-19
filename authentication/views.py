@@ -6,7 +6,7 @@ from django.core.cache import cache
 from django.http import JsonResponse
 from django.utils.timezone import now
 from django.views.decorators.csrf import csrf_exempt
-from authentication.sendOtpEmail import send_otp_email, generate_otp
+from authentication.sendOtpEmail import send_otp_email, generate_otp,send_new_user_details
 from authentication.tokenHandler import handle_token, verify_jwt
 from office_mgt import settings
 from services.services import SessionService, UserService
@@ -14,7 +14,91 @@ import json
 import re
 from django.contrib.auth.hashers import make_password
 
-from utils.models import User
+from utils.models import User, assign_user_role
+
+
+@csrf_exempt  # Disable CSRF for simplicity (use CSRF tokens in production)
+def create_user_view(request):
+    if request.method == "POST":
+        try:
+            # Parse JSON data from request body
+            data = json.loads(request.body)
+
+            # Extract required fields
+            email = data.get("email")
+            password = data.get("password")
+            first_name = data.get("first_name")
+            last_name = data.get("last_name")
+            role = data.get("role", "employee")  # Default to 'employee'
+            supervisor_email = data.get("supervisor")
+            phone_number = data.get("phone_number")
+            date_of_birth = data.get("date_of_birth")
+            zip_code = data.get("zip")
+
+            # Basic validation
+            if not email or not password:
+                return JsonResponse({
+                    "error": "Email and password are required."
+                }, status=400)
+
+            if role == "employee" and not supervisor_email:
+                return JsonResponse({
+                    "error": "Employees must have a supervisor."
+                }, status=400)
+
+            # Check if supervisor exists
+            supervisor = None
+            if supervisor_email:
+                try:
+                    supervisor = UserService().get(email=supervisor_email)
+                except User.DoesNotExist:
+                    return JsonResponse({
+                        "error": "Supervisor with this email does not exist."
+                    }, status=400)
+
+            # Check if user already exists
+            if UserService().filter(email=email).exists():
+                return JsonResponse({
+                    "error": "A user with this email already exists."
+                }, status=400)
+
+            # Create the user using the custom UserManager
+            user = User.objects.create_user(
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                role=role,
+                supervisor=supervisor,
+                phone_number=phone_number,
+                date_of_birth=date_of_birth,
+                zip=zip_code
+            )
+
+            # Assign user to a group based on role
+            assign_user_role(user)
+            send_new_user_details(user, password)
+            # Return success response
+            return JsonResponse({
+                "id": str(user.id),
+                "email": user.email,
+                "role": user.role,
+                "message": "User created successfully"
+            }, status=201)
+
+        except json.JSONDecodeError:
+            return JsonResponse({
+                "error": "Invalid JSON data."
+            }, status=400)
+        except Exception as e:
+            return JsonResponse({
+                "error": f"An error occurred: {str(e)}"
+            }, status=500)
+
+    else:
+        return JsonResponse({
+            "error": "Only POST requests are allowed."
+        }, status=405)
 
 @csrf_exempt
 def login(request):

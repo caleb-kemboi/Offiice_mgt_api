@@ -77,4 +77,18 @@ def send_password_changed_email(user):
     except Exception as e:
         print(f"Error sending password change email: {e}")
 
+def send_new_user_details(user, password):
+    try:
+        #html_content = render_to_string('password_changed.html', {'user': user})
+        email = EmailMultiAlternatives(
+            subject="Account Created Successfully",
+            body=f"Your account has been changed successfully. Your new password: {password}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user.email],
+        )
+       #email.attach_alternative(html_content, "text/html")
+        email.send()
+    except Exception as e:
+        print(f"Error sending password change email: {e}")
+
 
