@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 
 from employee_travels.utils import get_supervisor_email, send_travel_request_mail, send_approve_mail, send_decline_mail, \
     send_travel_expenses_mail
@@ -152,9 +153,17 @@ def decline_travel(request, travel_id):
 
 @csrf_exempt
 def travels_list(request):
-    travels = EmployeeTravelService().all()
-    return render(request, "employee_travels_list.html", {"travels": travels})
-
+  if request.method == 'GET':
+        travels = EmployeeTravelService().all().values(
+            'id',
+            'travel_title',
+            'travel_purpose',
+            'travel_destination',
+            'travel_date_from',
+            'travel_date_to',
+            'employee__email'  # Accessing employee email through related field
+        )
+        return JsonResponse({"travels": list(travels)})
 
 @csrf_exempt
 def view_employee_travel(request, travel_id):
@@ -195,7 +204,7 @@ def edit_employee_travel(request, travel_id):
         # Handle employee field separately (convert email to Employee instance)
         if "employee" in data:
             employee_email = data["employee"]
-            employee_instance = EmployeeService().filter(employee_email=employee_email).first()
+            employee_instance = UserService().filter(email=employee_email).first()
             if not employee_instance:
                 return JsonResponse({"error": "Employee not found"}, status=404)
             travel_entry.employee = employee_instance  # Assign the Employee instance
