@@ -150,14 +150,15 @@ def delete_delivery(request, delivery_id):
     except Exception as e:
         return JsonResponse({"error": f"Error deleting delivery: {str(e)}"}, status=500)
 
+
 @csrf_exempt
 def delivery_list(request):
     if request.method != "GET":
         return JsonResponse({"error": "Invalid request method"}, status=405)
 
     try:
-        deliveries = DeliveryService().all().order_by('-date', '-time')
-        return render(request, "deliveries/deliveries_list.html", {"deliveries": deliveries})
+        deliveries = DeliveryService().all().order_by('-delivery_date', '-delivery_time')
+        return JsonResponse({"deliveries": list(deliveries.values())}, safe=False)
     except Exception as e:
         return JsonResponse({"error": f"Error retrieving deliveries: {str(e)}"}, status=500)
 

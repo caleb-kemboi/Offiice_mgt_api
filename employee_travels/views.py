@@ -161,7 +161,12 @@ def travels_list(request):
             'travel_destination',
             'travel_date_from',
             'travel_date_to',
-            'employee__email'  # Accessing employee email through related field
+            'travel_budget',
+            'mode_of_transport',
+            'travel_approval_status',
+            'employee__email',
+            'employee__first_name',
+            'employee__last_name',
         )
         return JsonResponse({"travels": list(travels)})
 

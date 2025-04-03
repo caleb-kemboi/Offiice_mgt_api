@@ -2,7 +2,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.delivery_list, name='delivery_list'),  # List all deliveries
+    path('deliveries/', views.delivery_list, name='delivery_list'),  # List all deliveries
     path('create/', views.create_delivery, name='create_delivery'),  # Add new delivery
     path('<int:delivery_id>/', views.delivery_detail, name='delivery_detail'),  # Delivery details
     path('edit/<delivery_id>/', views.edit_delivery, name='edit_delivery'),  # Edit delivery info

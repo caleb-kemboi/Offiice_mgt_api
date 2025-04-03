@@ -4,6 +4,8 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
+
+from visitors.models import Visits
 from visitors.utils import send_host_email, send_employee_email
 
 
@@ -121,15 +123,30 @@ def edit_visit(request, visit_id):
     return render(request, 'visits/edit_visit.html', {'visit': visit})
 
 
+
 @csrf_exempt
 def visit_list(request):
     if request.method != "GET":
         return JsonResponse({"error": "Invalid request method"}, status=405)
 
-    visits = VisitsService().all().order_by('-date', '-time')  # Ensure it returns a QuerySet
+    visits = Visits.objects.select_related('employee').order_by('-visit_date', '-visit_time')
 
-    return render(request, 'visits/visit_list.html', {'visits': visits})
+    visit_data = [
+        {
+            "id": visit.id,
+            "visitor_first_name": visit.visitor_first_name,
+            "visitor_last_name": visit.visitor_last_name,
+            "visitor_phone": visit.visitor_phone,
+            "visitor_email": visit.visitor_email,
+            "visit_purpose": visit.visit_purpose,
+            "visit_date": visit.visit_date,
+            "visit_time": visit.visit_time,
+            "employee_email": visit.employee.email if visit.employee else None,
+        }
+        for visit in visits
+    ]
 
+    return JsonResponse({"visits": visit_data}, safe=False)
 @csrf_exempt
 def view_visit(request, visit_id):
     if request.method != "GET":
